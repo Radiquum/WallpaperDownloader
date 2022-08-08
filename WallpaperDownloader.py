@@ -1,3 +1,4 @@
+import argparse
 import configparser
 import os
 from sys import platform
@@ -6,6 +7,17 @@ import requests
 import xmltodict
 from PIL import Image
 
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-c",
+    "--config",
+    default="config.ini",
+    const="config.ini",
+    nargs="?",
+    type=str,
+    help="path to config file",
+)
+args = parser.parse_args()
 
 """
 
@@ -19,6 +31,7 @@ markets with specific pictures available:
     US - United States (Default, used when no unique wallpaper is available)
     DE - Germany
     JP - Japan
+    CN - China
 
     GB - United Kingdom
     NZ - New Zealand
@@ -28,7 +41,6 @@ markets with specific pictures available:
     CA - Canada
     ES - Spain
     IN - India
-    CN - China
 
 
 bing wallpaper url
@@ -41,7 +53,7 @@ can be any quality, minimum recommended value is 30, set it to 100 for no compre
 
 
 config = configparser.ConfigParser()
-if not os.path.isfile("config.ini"):
+if not os.path.isfile(args.config):
     config["DEFAULT"] = {
         ";only for bing\n" "market": "US",
         ";only for bing. spotlight resolution always 1920x1080 and 1080x1920\n"
@@ -55,9 +67,9 @@ if not os.path.isfile("config.ini"):
         "update_wallpapers": "False",
         ";source can be either bing or windows_spotlight\n" "source": "bing",
     }
-    with open("config.ini", "w") as configfile:
+    with open(args.config, "w") as configfile:
         config.write(configfile)
-config.read("config.ini")
+config.read(args.config)
 market: str = config["DEFAULT"]["market"]
 resolution: str = config["DEFAULT"]["resolution"]
 quality: str = config["DEFAULT"]["quality"]
@@ -67,10 +79,18 @@ update_wallpapers = config.getboolean("DEFAULT", "update_wallpapers")
 
 source = config["DEFAULT"]["source"]
 
+HttpHeader = {
+    "Accept-Encoding": "gzip, deflate",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cache-Control": "no-cache",
+    "User-Agent": "WindowsShellClient/9.0.40929.0 (Windows)",
+}
+
 
 def get_bing_daily_wallpaper():
     response = requests.get(
-        f"https://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&cc={market}"
+        f"https://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&cc={market}",
+        headers=HttpHeader,
     )
     parsed = xmltodict.parse(response.text)["images"]
     url_base: str = parsed["image"]["urlBase"]
