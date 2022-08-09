@@ -11,8 +11,12 @@ thanks to [WinLight](https://github.com/Biswa96/WinLight) for already done imple
 2. Install requirements.txt `python -m pip install -r requirements.txt`
 3. double click or run `python WallpaperDownloader.py`
 
-this script can be scheduled to run by timer through [cron](https://en.wikipedia.org/wiki/Cron)
-([crontab.guru](https://crontab.guru/))
+you can run it in background by using `nohup [Path to]/WallpaperDownloader.py -c ~/[Path to]/config.ini`
+
+configuration can be found in `config.ini`
+
+<!-- idk if this script can be scheduled to run by timer through [cron](https://en.wikipedia.org/wiki/Cron)
+([crontab.guru](https://crontab.guru/)) -->
 
 ## License
 

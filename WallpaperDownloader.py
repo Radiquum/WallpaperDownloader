@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import argparse
 import configparser
 import os
@@ -6,6 +7,25 @@ from sys import platform
 import requests
 import xmltodict
 from PIL import Image
+from rocketry import Rocketry
+from rocketry.args import Session
+from rocketry.conds import after_success
+from rocketry.conds import daily
+from rocketry.conds import every
+from rocketry.conds import minutely
+
+app = Rocketry(
+    config={
+        "task_execution": "process",
+        "task_pre_exist": "raise",
+        "force_status_from_logs": True,
+        "silence_task_prerun": False,
+        "silence_cond_check": False,
+        "max_process_count": 1,
+        "restarting": "replace",
+        "cycle_sleep": 0.5,
+    }
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -18,6 +38,8 @@ parser.add_argument(
     help="path to config file",
 )
 args = parser.parse_args()
+args.config = os.path.expanduser(args.config)
+os.chdir(os.path.dirname(args.config))
 
 """
 
@@ -60,12 +82,15 @@ if not os.path.isfile(args.config):
         "resolution": "1920x1080",
         ";only for bing. spotlight quality is unknown\n" "quality": "50",
         ";download path, relative to current folder or to home folder (~)\n"
-        "download_folder": "wallpapers",
+        "download_folder": "~/Pictures/wallpapers",
         ";auto wallpaper update supported only on gnu\\linux with gnome (42) Desktop Environment.\n"
         ';Windows users can download "Dynamic Theme" app from Microsoft Store.\n'
         ";True or False\n"
         "update_wallpapers": "False",
         ";source can be either bing or windows_spotlight\n" "source": "bing",
+        ';how often task is run, default value is "daily", for reference please use this: https://rocketry.readthedocs.io/en/stable/tutorial/basic.html#scheduling-basics \n'
+        ';set this to "0" or "disabled" to disable and run the script only one time (or to use something else as a scheduler) \n'
+        "time": "daily",
     }
     with open(args.config, "w") as configfile:
         config.write(configfile)
@@ -75,6 +100,7 @@ resolution: str = config["DEFAULT"]["resolution"]
 quality: str = config["DEFAULT"]["quality"]
 
 download_folder = os.path.expanduser(config["DEFAULT"]["download_folder"])
+time = config["DEFAULT"]["time"]
 update_wallpapers = config.getboolean("DEFAULT", "update_wallpapers")
 
 source = config["DEFAULT"]["source"]
@@ -156,13 +182,26 @@ def set_wallpaper(file):
                 f"gsettings set org.gnome.desktop.background picture-uri-dark {file}"
             )
         else:
-            print("Desktop Environment is not supported")
+            print(
+                f"Desktop Environment '{os.environ.get('DESKTOP_SESSION')}' is not supported"
+            )
     else:
-        print("platform is not supported")
+        print(f"{platform} is not supported")
 
 
-if __name__ == "__main__":
+import WinLight
+
+
+def _run_():
     if source == "bing":
         get_bing_daily_wallpaper()
     if source == "windows_spotlight":
-        exec(open("WinLight.py").read())
+        WinLight.download_spotlight()
+
+
+if __name__ == "__main__":
+    if time not in [None, "0", "disabled"]:
+        app.task(time, func=_run_)
+        app.run()
+    else:
+        _run_()
